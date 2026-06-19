@@ -1,15 +1,36 @@
 import { useState, useEffect, useCallback } from 'react';
-import MDEditor from '@uiw/react-md-editor';
 import { useReports } from '../context/ReportsContext';
 import { formatDisplayDate, toDateString } from '../utils/dateUtils';
 
 interface DailyEditorProps {
   selectedDate: Date;
+  setSelectedDate: (date: Date) => void;
 }
 
-export default function DailyEditor({ selectedDate }: DailyEditorProps) {
+export default function DailyEditor({ selectedDate, setSelectedDate }: DailyEditorProps) {
   const { data, saveDaily } = useReports();
   const dateKey = toDateString(selectedDate);
+
+  const sortedDates = Object.keys(data.daily)
+    .filter(k => data.daily[k]?.content?.trim())
+    .sort();
+  const currentIndex = sortedDates.indexOf(dateKey);
+
+  const todayKey = toDateString(new Date());
+
+  const goTo = (key: string) => setSelectedDate(new Date(key + 'T12:00:00'));
+
+  const goPrev = () => {
+    const prev = new Date(selectedDate);
+    prev.setDate(prev.getDate() - 1);
+    goTo(toDateString(prev));
+  };
+  const goNext = () => {
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 1);
+    goTo(toDateString(next));
+  };
+  const goLatest = () => goTo(todayKey);
 
   const [content, setContent] = useState('');
   const [saved, setSaved] = useState(true);
@@ -22,8 +43,8 @@ export default function DailyEditor({ selectedDate }: DailyEditorProps) {
     setLastSavedKey(dateKey);
   }, [dateKey, data.daily]);
 
-  const handleChange = (val?: string) => {
-    setContent(val ?? '');
+  const handleChange = (val: string) => {
+    setContent(val);
     setSaved(false);
   };
 
@@ -52,6 +73,17 @@ export default function DailyEditor({ selectedDate }: DailyEditorProps) {
 
   return (
     <div className="editor-container">
+      <div className="daily-nav-bar">
+        <button className="nav-report-btn" onClick={goPrev}>
+          ‹ 上一封
+        </button>
+        <button className="nav-report-btn" onClick={goNext} disabled={dateKey >= todayKey}>
+          下一封 ›
+        </button>
+        <button className="nav-report-btn" onClick={goLatest} disabled={dateKey === todayKey}>
+          最新日报
+        </button>
+      </div>
       <div className="editor-header">
         <div className="editor-title-group">
           <h2 className="editor-title">{formatDisplayDate(dateKey)}</h2>
@@ -67,14 +99,13 @@ export default function DailyEditor({ selectedDate }: DailyEditorProps) {
         </div>
       </div>
 
-      <div className="md-editor-wrapper" data-color-mode="light">
-        <MDEditor
+      <div className="daily-textarea-wrapper">
+        <textarea
+          className="daily-textarea"
           value={content}
-          onChange={handleChange}
-          preview="edit"
-          height="calc(100vh - 180px)"
-          visibleDragbar={false}
-          className="md-editor"
+          onChange={e => handleChange(e.target.value)}
+          placeholder="记录今天的工作..."
+          spellCheck={false}
         />
       </div>
 

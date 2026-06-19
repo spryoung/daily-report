@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import type { ReportsData, DailyReport, WeeklyReport } from '../types';
-import { loadFromLocalStorage, saveToLocalStorage } from '../utils/storage';
+import { loadFromStorage, saveToStorage } from '../utils/storage';
 
 type Action =
   | { type: 'SAVE_DAILY'; payload: DailyReport }
@@ -36,11 +36,20 @@ interface ReportsContextValue {
 const ReportsContext = createContext<ReportsContextValue | null>(null);
 
 export function ReportsProvider({ children }: { children: React.ReactNode }) {
-  const [data, dispatch] = useReducer(reducer, undefined, loadFromLocalStorage);
+  const [data, dispatch] = useReducer(reducer, { daily: {}, weekly: {} });
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    saveToLocalStorage(data);
-  }, [data]);
+    loadFromStorage().then(initial => {
+      dispatch({ type: 'IMPORT', payload: initial });
+      setLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveToStorage(data);
+  }, [data, loaded]);
 
   const saveDaily = (report: DailyReport) => dispatch({ type: 'SAVE_DAILY', payload: report });
   const saveWeekly = (report: WeeklyReport) => dispatch({ type: 'SAVE_WEEKLY', payload: report });

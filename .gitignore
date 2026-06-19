@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local data (personal reports)
+data/
+
+# Env files
+.env
+.env.local
+.env.*.local

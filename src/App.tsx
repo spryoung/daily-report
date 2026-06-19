@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import DailyEditor from './components/DailyEditor';
 import WeeklyEditor from './components/WeeklyEditor';
@@ -7,11 +7,27 @@ import { exportToFile, importFromFile } from './utils/storage';
 import type { ViewMode } from './types';
 import './App.css';
 
+function useDarkMode() {
+  const [dark, setDark] = useState(() => {
+    const stored = localStorage.getItem('theme');
+    if (stored) return stored === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  }, [dark]);
+
+  return [dark, setDark] as const;
+}
+
 function AppContent() {
   const { data, importData } = useReports();
   const [viewMode, setViewMode] = useState<ViewMode>('daily');
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [selectedWeek, setSelectedWeek] = useState(() => new Date());
+  const [dark, setDark] = useDarkMode();
 
   const handleExport = async () => {
     await exportToFile(data);
@@ -31,6 +47,8 @@ function AppContent() {
         setSelectedDate={setSelectedDate}
         selectedWeek={selectedWeek}
         setSelectedWeek={setSelectedWeek}
+        dark={dark}
+        toggleDark={() => setDark(d => !d)}
       />
       <main className="main-content">
         <div className="toolbar">
@@ -42,9 +60,9 @@ function AppContent() {
           </button>
         </div>
         {viewMode === 'daily' ? (
-          <DailyEditor selectedDate={selectedDate} />
+          <DailyEditor selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
         ) : (
-          <WeeklyEditor selectedWeek={selectedWeek} />
+          <WeeklyEditor selectedWeek={selectedWeek} setSelectedWeek={setSelectedWeek} />
         )}
       </main>
     </div>

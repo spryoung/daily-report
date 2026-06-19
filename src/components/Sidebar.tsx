@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   format,
   addMonths,
@@ -23,6 +23,8 @@ interface SidebarProps {
   setSelectedDate: (date: Date) => void;
   selectedWeek: Date;
   setSelectedWeek: (date: Date) => void;
+  dark: boolean;
+  toggleDark: () => void;
 }
 
 const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'];
@@ -34,9 +36,17 @@ export default function Sidebar({
   setSelectedDate,
   selectedWeek,
   setSelectedWeek,
+  dark,
+  toggleDark,
 }: SidebarProps) {
   const { data } = useReports();
   const [displayMonth, setDisplayMonth] = useState(() => new Date());
+
+  useEffect(() => {
+    if (viewMode === 'daily') {
+      setDisplayMonth(selectedDate);
+    }
+  }, [selectedDate, viewMode]);
 
   const calendarDays = getCalendarDays(displayMonth);
 
@@ -72,6 +82,9 @@ export default function Sidebar({
     <aside className="sidebar">
       <div className="sidebar-header">
         <h1 className="app-title">日报 &amp; 周报</h1>
+        <button className="theme-toggle-btn" onClick={toggleDark} title={dark ? '切换到浅色模式' : '切换到暗夜模式'}>
+          {dark ? '☀️' : '🌙'}
+        </button>
       </div>
 
       <div className="mode-tabs">

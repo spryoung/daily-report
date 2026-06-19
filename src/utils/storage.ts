@@ -1,19 +1,23 @@
 import type { ReportsData } from '../types';
 
-const STORAGE_KEY = 'daily-report-data';
+const EMPTY: ReportsData = { daily: {}, weekly: {} };
 
-export function loadFromLocalStorage(): ReportsData {
+export async function loadFromStorage(): Promise<ReportsData> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as ReportsData;
+    const res = await fetch('/api/reports')
+    if (res.ok) return await res.json() as ReportsData
   } catch {
-    // ignore
+    // fallback
   }
-  return { daily: {}, weekly: {} };
+  return EMPTY
 }
 
-export function saveToLocalStorage(data: ReportsData): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+export function saveToStorage(data: ReportsData): void {
+  fetch('/api/reports', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }).catch(() => {})
 }
 
 export async function exportToFile(data: ReportsData): Promise<void> {
@@ -35,7 +39,6 @@ export async function exportToFile(data: ReportsData): Promise<void> {
     }
   }
 
-  // fallback download
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

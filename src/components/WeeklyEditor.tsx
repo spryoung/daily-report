@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import MDEditor from '@uiw/react-md-editor';
 import { useReports } from '../context/ReportsContext';
 import {
   toWeekKey,
@@ -7,16 +6,29 @@ import {
   toDateString,
   getWeekBounds,
   format,
+  addWeeks,
+  subWeeks,
 } from '../utils/dateUtils';
 import { marked } from 'marked';
 
 interface WeeklyEditorProps {
   selectedWeek: Date;
+  setSelectedWeek: (date: Date) => void;
 }
 
-export default function WeeklyEditor({ selectedWeek }: WeeklyEditorProps) {
+export default function WeeklyEditor({ selectedWeek, setSelectedWeek }: WeeklyEditorProps) {
   const { data, saveWeekly } = useReports();
   const weekKey = toWeekKey(selectedWeek);
+
+  const sortedWeeks = Object.keys(data.weekly)
+    .filter(k => data.weekly[k]?.content?.trim())
+    .sort();
+
+  const currentWeekKey = toWeekKey(new Date());
+
+  const goPrev = () => setSelectedWeek(subWeeks(selectedWeek, 1));
+  const goNext = () => setSelectedWeek(addWeeks(selectedWeek, 1));
+  const goLatest = () => setSelectedWeek(new Date());
 
   const [content, setContent] = useState('');
   const [saved, setSaved] = useState(true);
@@ -29,8 +41,8 @@ export default function WeeklyEditor({ selectedWeek }: WeeklyEditorProps) {
     setSaved(true);
   }, [weekKey, data.weekly]);
 
-  const handleChange = (val?: string) => {
-    setContent(val ?? '');
+  const handleChange = (val: string) => {
+    setContent(val);
     setSaved(false);
   };
 
@@ -76,7 +88,7 @@ export default function WeeklyEditor({ selectedWeek }: WeeklyEditorProps) {
 
   const dailyReports = getDailyReportsForWeek();
 
-  const generateDraft = () => {
+  const generateDraft = async () => {
     if (dailyReports.length === 0) return;
     setGenerating(true);
 
@@ -92,24 +104,48 @@ export default function WeeklyEditor({ selectedWeek }: WeeklyEditorProps) {
       isoWeekDay[toDateString(d)] = dayNames[i];
     }
 
-    const dailySection = dailyReports
-      .map(({ date, content }) => {
-        const dayName = isoWeekDay[date] ?? date;
-        return `### ${dayName}（${date}）\n\n${content.trim()}`;
-      })
-      .join('\n\n---\n\n');
+    const payload = {
+      weekLabel,
+      dateRange,
+      dailyReports: dailyReports.map(({ date, content }) => ({
+        dayName: isoWeekDay[date] ?? date,
+        date,
+        content,
+      })),
+    };
 
-    const draft = `# ${weekLabel} 周报\n\n**时间范围：** ${dateRange}\n\n## 本周工作内容\n\n${dailySection}\n\n---\n\n## 本周总结\n\n> （请在此填写本周总结）\n\n## 下周计划\n\n> （请在此填写下周计划）\n`;
-
-    setContent(draft);
-    setSaved(false);
-    setGenerating(false);
+    try {
+      const res = await fetch('/api/generate-weekly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json() as { content?: string; error?: string };
+      if (data.error) throw new Error(data.error);
+      setContent(data.content ?? '');
+      setSaved(false);
+    } catch (e) {
+      alert(`生成失败：${e instanceof Error ? e.message : '未知错误'}`);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const htmlContent = previewMode === 'preview' ? marked.parse(content) as string : '';
 
   return (
     <div className="editor-container">
+      <div className="daily-nav-bar">
+        <button className="nav-report-btn" onClick={goPrev}>
+          ‹ 上一封
+        </button>
+        <button className="nav-report-btn" onClick={goNext} disabled={weekKey >= currentWeekKey}>
+          下一封 ›
+        </button>
+        <button className="nav-report-btn" onClick={goLatest} disabled={weekKey === currentWeekKey}>
+          最新周报
+        </button>
+      </div>
       <div className="editor-header">
         <div className="editor-title-group">
           <h2 className="editor-title">{formatWeekDisplay(weekKey)}</h2>
@@ -147,13 +183,13 @@ export default function WeeklyEditor({ selectedWeek }: WeeklyEditorProps) {
       </div>
 
       {previewMode === 'edit' ? (
-        <div className="md-editor-wrapper" data-color-mode="light">
-          <MDEditor
+        <div className="daily-textarea-wrapper">
+          <textarea
+            className="daily-textarea weekly-textarea"
             value={content}
-            onChange={handleChange}
-            preview="edit"
-            height="calc(100vh - 180px)"
-            visibleDragbar={false}
+            onChange={e => handleChange(e.target.value)}
+            placeholder="使用 Markdown 编写周报..."
+            spellCheck={false}
           />
         </div>
       ) : (
