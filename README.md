@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# 日报 & 周报系统
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个本地运行的日报、周报管理工具，支持 AI 一键生成周报草稿。
 
-Currently, two official plugins are available:
+## 功能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 日报编写与保存，按日历导航
+- 周报编写，支持 Markdown 编辑和预览
+- AI 自动归纳本周日报生成周报草稿
+- 上一封 / 下一封 / 最新导航
+- 暗夜模式（跟随系统，手动切换）
+- 数据导出 / 导入（JSON 格式）
 
-## React Compiler
+## 快速开始
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+git clone https://github.com/spryoung/daily-report.git
+cd daily-report
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+打开 http://localhost:5173 即可使用。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## AI 生成周报（可选）
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+周报页面的「从日报生成草稿」功能需要配置 Anthropic API Key。
+
+在项目根目录创建 `.env.local` 文件：
+
 ```
+ANTHROPIC_API_KEY=你的API Key
+```
+
+如果使用公司代理：
+
+```
+ANTHROPIC_AUTH_TOKEN=你的Token
+ANTHROPIC_BASE_URL=https://你的代理地址/
+```
+
+## 换电脑迁移数据
+
+数据存储在本地 `data/reports.json`，不会上传到 GitHub。
+
+迁移步骤：
+1. 原电脑点右上角「导出」，保存 JSON 文件
+2. 新电脑拉取代码启动后，点「导入」加载该文件
+
+## 技术栈
+
+- React 19 + TypeScript + Vite
+- date-fns 日期处理
+- marked Markdown 渲染
